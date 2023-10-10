@@ -39,9 +39,9 @@ self.addEventListener('fetch',(e)=>{
     if(e.request.url.includes('avenue.jpg'))
     e.respondWith(fetch('img/flowers.jpg'));
     else e.respondWith(fetch(e.request)); */
-    //1. Cache Only
+    //1. Cache Only toda la app es servida por el cache
     // e.respondWith(caches.match(e.request));
-    //2. Cache with network falback
+    //2. Cache with network fallback si el recurso no lo encuentra en el cache lo busca en internet 
    /*  const source = caches.match(e.request).then((res)=>{
         if(res) return res;
         return fetch(e.request).then(resFetch=>{
@@ -52,7 +52,7 @@ self.addEventListener('fetch',(e)=>{
         });
     });
     e.respondWith(source); */
-    //3 Networkwith cache fallback
+    //3 Networkwith cache fallback siempre va estar actualizado mientras tenga internet sino utiliza el cache
    /*  const source = fetch(e.request).then(res =>{
         if(!res) throw Error('Not Found');
         //Checar si el recurso ya existe en algún cache
@@ -65,11 +65,11 @@ self.addEventListener('fetch',(e)=>{
     });
     e.respondWith(source); */
     //4. Cache with network update
-    // la aplicacion simpre va estara ctulizada sino esta en el cache lo va agregar y si hay uno actualizado devulve el actual y lo actualiza
+    // la aplicacion simpre va estara actulizada sino esta en el cache lo va agregar y si hay uno actualizado devulve el actual y lo actualiza
     //rendimiento critico si el rendimiento es bajo 
     //desventaja toda la app esta un paso atras 
     // al momento de cambiar cualquier archivo lo va arrojar desde cache
-    if(e.request.url.includes('bootstrap'))
+    /* if(e.request.url.includes('bootstrap'))
     return e.respondWith(caches.match(e.request));
    const source = caches.open(STATIC).then(cache=>{
     fetch(e.request).then(res=>{
@@ -77,9 +77,35 @@ self.addEventListener('fetch',(e)=>{
     });
     return cache.match(e.request);
    });
-   e.respondWith(source);
+   e.respondWith(source); */
 
-    
+   //5. Cache and network race
+   // Se mandan las dos peticiones y la primera que conteste es la que va a mostrar
+   const source = new Promise((resolve,reject)=>{
+    let rejected = false; // esta es nuestra bandera
+    //validar en caso de que los dos recursos no esten disponibles
+    const failsOnce =() => {
+        if(rejected){
+            if(/\.(png | jpg)/i.test(e.request.url)){  //expresion regular para ver que vengan imagenes
+                resolve(caches.match('/img/not-found.png'));
+            }else{
+                reject("SourceNotFound");
+            }
+        }else{
+            rejected = true;
+        }
+    };
+    // se manda como en una carrera tanto al cache como al internet 
+    fetch(e.request).then(res=>{
+        res.ok ? resolve(res) : failsOnce();
+    }).catch(failsOnce());
+    caches.match(e.request).then(cacheRes =>{
+        cacheRes.ok ? resolve(cacheRes) : failsOnce();
+    }).catch(failsOnce());
+
+   });
+
+    e.respondWith(source);
 })
 
 /* self.addEventListener('push',(e)=>{
