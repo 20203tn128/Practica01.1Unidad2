@@ -10,6 +10,7 @@ const APP_SHELL = [
     'css/styles.css',
     'img/avenue.jpg',
     'js/app.js',
+    'pages/offline.html'
 ];
 
 //Todos aquellos recursos que nunca cambian
@@ -34,6 +35,11 @@ self.addEventListener('install',(e)=>{
 self.addEventListener('activate',(e)=>{
     console.log('activado');
 })
+
+//Por medio de una estrategia de cache y el evento fetch mostrar en pantalla
+//la pagina offline cuando se solicite el recurso page2.html y no haya internet
+
+
 self.addEventListener('fetch',(e)=>{
    /*  console.log(e.request);
     if(e.request.url.includes('avenue.jpg'))
@@ -53,7 +59,7 @@ self.addEventListener('fetch',(e)=>{
     });
     e.respondWith(source); */
     //3 Networkwith cache fallback siempre va estar actualizado mientras tenga internet sino utiliza el cache
-   /*  const source = fetch(e.request).then(res =>{
+    const source = fetch(e.request).then(res =>{
         if(!res) throw Error('Not Found');
         //Checar si el recurso ya existe en algún cache
         caches.open(DYNAMIC).then(cache=>{
@@ -61,9 +67,11 @@ self.addEventListener('fetch',(e)=>{
         })
         return res.clone();
     }).catch(errr=>{
+        if(/page2\.html/gi.test(e.request.url))
+            return caches.match('pages/offline.html')
         return caches.match(e.request);
     });
-    e.respondWith(source); */
+    e.respondWith(source);
     //4. Cache with network update
     // la aplicacion simpre va estara actulizada sino esta en el cache lo va agregar y si hay uno actualizado devulve el actual y lo actualiza
     //rendimiento critico si el rendimiento es bajo 
@@ -81,14 +89,19 @@ self.addEventListener('fetch',(e)=>{
 
    //5. Cache and network race
    // Se mandan las dos peticiones y la primera que conteste es la que va a mostrar
-   const source = new Promise((resolve,reject)=>{
+   /* const source = new Promise((resolve,reject)=>{
     let rejected = false; // esta es nuestra bandera
     //validar en caso de que los dos recursos no esten disponibles
     const failsOnce =() => {
         if(rejected){
-            if(/\.(png | jpg)/i.test(e.request.url)){  //expresion regular para ver que vengan imagenes
-                resolve(caches.match('/img/not-found.png'));
-            }else{
+            if(/page2\.html/i.test(e.request.url)){  //expresion regular para ver que vengan imagenes
+                resolve(caches.match('pages/offline.html'));
+
+            }if(e.request.url.includes('page2.html')){
+                resolve(caches.match('pages/offline.html));
+            }
+            
+            else{
                 reject("SourceNotFound");
             }
         }else{
@@ -106,7 +119,7 @@ self.addEventListener('fetch',(e)=>{
    });
 
     e.respondWith(source);
-})
+}) */
 
 /* self.addEventListener('push',(e)=>{
     console.log("Notificación push");
@@ -115,3 +128,4 @@ self.addEventListener('fetch',(e)=>{
 self.addEventListener('sync',(e)=>{
 console.log('Sync Event');
 }); */
+});
